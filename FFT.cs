@@ -9,8 +9,9 @@ namespace QAMVis
 	{
 		public struct Complex
 		{
-			public Complex(float r, float i)
+			public Complex(int f, float r, float i)
 			{
+				freq = f;
 				real = r;
 				imag = i;
 			}
@@ -31,20 +32,22 @@ namespace QAMVis
 				}
 			}
 
+			public int freq;
 			public float real;
 			public float imag;
 		}
 
-		public static Complex[] DFT(float[] values)
+		public static Complex[] DFT(float[] values, float nrm)
 		{
 			Complex[] coeffs = new Complex[values.Length / 2];
 			for (int c = 0; c < coeffs.Length; c++)
 			{
+				coeffs[c].freq = c;
 				for (int x = 0; x < values.Length; x++)
 				{
 					float t = (float)x / (float)(values.Length - 1);
-					coeffs[c].real += (float)Math.Sin(t * Math.PI * 2.0f * (float)c) * values[x];
-					coeffs[c].imag += (float)Math.Cos(t * Math.PI * 2.0f * (float)c) * values[x];
+					coeffs[c].real += (float)Math.Sin(t * Math.PI * 2.0f * (float)c) * values[x] * nrm;
+					coeffs[c].imag += (float)Math.Cos(t * Math.PI * 2.0f * (float)c) * values[x] * nrm;
 				}
 			}
 			return coeffs;

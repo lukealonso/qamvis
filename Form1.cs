@@ -18,12 +18,21 @@ namespace QAMVis
             InitializeComponent();
         }
 
-		private void DrawGraph(Graphics g, float x, float y, float[] values, float xScale, float yScale, Pen pen)
+		private void DrawGraph(Graphics g, float x, float y, float[] values, float xScale, float yScale, Pen pen, out int height)
 		{
+			int minPos = 100000;
+			int maxPos = 0;
 			for (int i = 1; i < values.Length; i++)
 			{
-				g.DrawLine(pen, new PointF(x + (float)(i - 1) * xScale, y + (values[i - 1] * 0.5f + 0.5f) * yScale), new PointF(x + (float)i * xScale, y + (values[i] * 0.5f + 0.5f) * yScale));
+				int yPos = (int)(values[i] * yScale);
+				minPos = Math.Min(minPos, yPos);
+				maxPos = Math.Max(maxPos, yPos);
 			}
+			for (int i = 1; i < values.Length; i++)
+			{
+				g.DrawLine(pen, new PointF(x + (float)(i - 1) * xScale, y + values[i - 1] * yScale - minPos), new PointF(x + (float)i * xScale, y + values[i] * yScale - minPos));
+			}
+			height = maxPos - minPos;
 		}
 
         private void Form1_Paint(object sender, PaintEventArgs e)
@@ -47,7 +56,7 @@ namespace QAMVis
 			Graphics g = e.Graphics;
 			g.Clear(Color.Black);
 
-			QAM modulator = new QAM((int)Math.Pow(2.0f, (float)numericUpDown1.Value), (int)Math.Pow(2.0f, (float)numericUpDown2.Value));
+			QAM modulator = new QAM((int)Math.Pow(2.0f, (float)numericUpDown1.Value), (int)Math.Pow(2.0f, (float)numericUpDown2.Value), (int)numericUpDown4.Value);
 			/*
 			for (var i = 0; i < modulator.NumStates; i++)
 			{
@@ -66,7 +75,7 @@ namespace QAMVis
 				stream.AddRange(fragment);
 			}
 
-			float[] noise = Noise.GenerateNoise(stream.Count, (float)numericUpDown3.Value / 10.0f);
+			float[] noise = Noise.GenerateNoise(stream.Count, (float)numericUpDown3.Value / 20.0f);
 			List<float> noisyStream = new List<float>();
 			int shifter = (int)((m_Random.NextDouble() * 2.0f - 1.0f) * 0.0f);
 			for (int i = 0; i < stream.Count; i++)
@@ -86,38 +95,47 @@ namespace QAMVis
 			string outString = Encoding.ASCII.GetString(outBytes);
 
 			float curY = 100.0f;
-			float streamScale = 16.0f;
+			float streamScale = 0.5f * (float)numericUpDown4.Value;
+			float streamSize = wordLength * streamScale;
 			float statesPerByte = (float)inStates.Length / (float)inBytes.Length;
 			for (int i = 0; i < inString.Length; i++)
 			{
 				float state = (float)i * statesPerByte;
-				g.DrawString(inString[i].ToString(), System.Drawing.SystemFonts.DefaultFont, Brushes.White, new PointF(20.0f + state * streamScale, curY));
+				g.DrawString(inString[i].ToString(), System.Drawing.SystemFonts.DefaultFont, Brushes.White, new PointF(20.0f + state * streamSize, curY));
 			}
 			curY += 16.0f;
 			for (int i = 0; i < inStates.Length; i++)
 			{
-				g.DrawString(inStates[i].ToString(), System.Drawing.SystemFonts.DefaultFont, Brushes.White, new PointF(20.0f + (float)i * streamScale, curY));
+				g.DrawString(inStates[i].ToString(), System.Drawing.SystemFonts.DefaultFont, Brushes.White, new PointF(20.0f + (float)i * streamSize, curY));
 			}
-			curY += 16.0f;
-			DrawGraph(g, 20, curY, stream.ToArray(), 0.5f, streamScale * 2.0f, Pens.Aqua);
-			curY += 36.0f;
-			DrawGraph(g, 20, curY, noise, 0.5f, streamScale, Pens.Red);
-			curY += 20.0f;
-			DrawGraph(g, 20, curY, noisyStream.ToArray(), 0.5f, streamScale * 2.0f, Pens.Yellow);
-			curY += 38.0f;
+			int graphMax = 0;
+			curY += 26.0f;
+			DrawGraph(g, 20, curY, stream.ToArray(), streamScale, 32.0f, Pens.Aqua, out graphMax);
+			curY += graphMax + 10.0f;
+			DrawGraph(g, 20, curY, noise, streamScale, 32.0f, Pens.Red, out graphMax);
+			curY += graphMax + 10.0f;
+			DrawGraph(g, 20, curY, noisyStream.ToArray(), streamScale, 32.0f, Pens.Yellow, out graphMax);
+			curY += graphMax + 10.0f;
 			for (int i = 0; i < outStates.Count; i++)
 			{
 				Brush useBrush = outStates[i] != inStates[i] ? Brushes.Red : new SolidBrush(Color.FromArgb(0, 255, 0));
-				g.DrawString(outStates[i].ToString(), System.Drawing.SystemFonts.DefaultFont, useBrush, new PointF(20.0f + (float)i * streamScale, curY));
+				g.DrawString(outStates[i].ToString(), System.Drawing.SystemFonts.DefaultFont, useBrush, new PointF(20.0f + (float)i * streamSize, curY));
 			}
 			curY += 16.0f;
 			for (int i = 0; i < inString.Length; i++)
 			{
 				float state = (float)i * statesPerByte;
 				Brush useBrush = outString[i] != inString[i] ? Brushes.Red : new SolidBrush(Color.FromArgb(0, 255, 0));
-				g.DrawString(outString[i].ToString(), System.Drawing.SystemFonts.DefaultFont, useBrush, new PointF(20.0f + state * streamScale, curY));
+				g.DrawString(outString[i].ToString(), System.Drawing.SystemFonts.DefaultFont, useBrush, new PointF(20.0f + state * streamSize, curY));
 			}
 			curY += 16.0f;
+
+			g.DrawString("amps", System.Drawing.SystemFonts.DefaultFont, Brushes.Yellow, new PointF(5, 25));
+			g.DrawString("phases", System.Drawing.SystemFonts.DefaultFont, Brushes.Yellow, new PointF(65, 25));
+			g.DrawString("freqs", System.Drawing.SystemFonts.DefaultFont, Brushes.Yellow, new PointF(125, 25));
+			g.DrawString("noise", System.Drawing.SystemFonts.DefaultFont, Brushes.Yellow, new PointF(185, 25));
+			g.DrawString(modulator.NumStates.ToString() + " states", System.Drawing.SystemFonts.DefaultFont, Brushes.Yellow, new PointF(250, 25));
+
 		}
     }
 }

@@ -8,38 +8,55 @@ namespace QAMVis
 {
 	public class QAM
 	{
-		public QAM(int amplitudes, int phases)
+		public QAM(int amplitudes, int phases, int frequencies)
 		{
+			m_NumFrequencies = frequencies;
 			m_NumAmplitudes = amplitudes;
 			m_NumPhases = phases;
 		}
 
 		public float[] Modulate(uint state, int wordLength)
 		{
+			int subStateBits = (int)Math.Log(m_NumAmplitudes * m_NumPhases, 2);
 			float baseAmplitude = 1.0f / (float)m_NumAmplitudes;
-			int amplitudeIndex = (int)state / m_NumPhases;
-			float remainingAmplitude = 1.0f - baseAmplitude;
-			float amplitude = baseAmplitude + ((float)amplitudeIndex / (float)(m_NumAmplitudes - 1)) * remainingAmplitude;
-			float phase = (float)(state % m_NumPhases) / (float)(m_NumPhases - 1);
 			float[] result = new float[wordLength];
-			for (int i = 0; i < wordLength; i++)
+			float nrm = 1.0f / (float)m_NumFrequencies;
+			for (int f = 0; f < m_NumFrequencies; f++)
 			{
-				float t = (float)i / (float)(wordLength - 1);
-				result[i] = (float)Math.Sin(t * Math.PI * 2.0f + phase * Math.PI) * amplitude;
+				uint subState = (state >> (subStateBits * f)) & (uint)((1 << subStateBits) - 1);
+				int amplitudeIndex = (int)subState / m_NumPhases;
+				float remainingAmplitude = 1.0f - baseAmplitude;
+				float amplitude = baseAmplitude + ((float)amplitudeIndex / (float)(m_NumAmplitudes - 1)) * remainingAmplitude;
+				float phase = (float)(subState % m_NumPhases) / (float)(m_NumPhases - 1);
+				for (int i = 0; i < wordLength; i++)
+				{
+					float t = (float)i / (float)(wordLength - 1);
+					result[i] += (float)Math.Sin(t * Math.PI * 2.0f * ((float)f + 1.0f) + phase * Math.PI) * amplitude * nrm;
+				}
 			}
 			return result;
 		}
 
 		public uint Demodulate(float[] data)
 		{
-			List<FFT.Complex> coeffs = FFT.DFT(data).ToList();
-			coeffs = coeffs.OrderBy(x => -x.Magnitude).ToList();
+			float nrm = (float)m_NumFrequencies;
+			int subStateBits = (int)Math.Log(m_NumAmplitudes * m_NumPhases, 2);
 			float magStep = (float)data.Length / (float)(m_NumAmplitudes * 2);
-			float phaseStep = (float)Math.PI / (float)(m_NumPhases - 1);
-			float amplitude = (float)Math.Round((coeffs[0].Magnitude - magStep) / magStep);
-			float phase = (float)Math.Round(Math.Abs(coeffs[0].Angle) / phaseStep);
-			uint state = (uint)Math.Min((float)NumStates, Math.Max(0.0f, Math.Round(amplitude * (float)m_NumPhases + phase)));
-			return state;
+			List<FFT.Complex> coeffs = FFT.DFT(data, nrm).ToList();
+			coeffs = coeffs.OrderBy(x => -x.Magnitude).ToList();
+			coeffs = coeffs.GetRange(0, m_NumFrequencies);
+			coeffs = coeffs.OrderBy(x => x.freq).ToList();
+			uint finalState = 0; 
+			for( int f = 0; f < m_NumFrequencies; f++ )
+			{
+				float phaseStep = (float)Math.PI / (float)(m_NumPhases - 1);
+				float amplitude = (float)Math.Round((coeffs[f].Magnitude - magStep) / magStep);
+				float phase = (float)Math.Round(Math.Abs(coeffs[f].Angle) / phaseStep);
+				uint state = (uint)Math.Min((float)NumStates, Math.Max(0.0f, Math.Round(amplitude * (float)m_NumPhases + phase)));
+				finalState |= state << (subStateBits * f);
+			}
+
+			return finalState;
 		}
 
 		public byte[] DecodeStates(uint[] states)
@@ -124,9 +141,10 @@ namespace QAMVis
 		{
 			get
 			{
-				return m_NumAmplitudes * m_NumPhases;
+				return (int)Math.Pow(m_NumAmplitudes * m_NumPhases, m_NumFrequencies);
 			}
 		}
+		private int m_NumFrequencies;
 		private int m_NumAmplitudes;
 		private int m_NumPhases;
 	}
