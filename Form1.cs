@@ -74,7 +74,7 @@ namespace QAMVis
 				float[] fragment = modulator.Modulate(state, wordLength);
 				stream.AddRange(fragment);
 			}
-
+			float noiseScale = (float)numericUpDown3.Value / 20.0f;
 			float[] noise = Noise.GenerateNoise(stream.Count, (float)numericUpDown3.Value / 20.0f);
 			List<float> noisyStream = new List<float>();
 			int shifter = (int)((m_Random.NextDouble() * 2.0f - 1.0f) * 0.0f);
@@ -113,7 +113,7 @@ namespace QAMVis
 			DrawGraph(g, 20, curY, stream.ToArray(), streamScale, 32.0f, Pens.Aqua, out graphMax);
 			curY += graphMax + 10.0f;
 			DrawGraph(g, 20, curY, noise, streamScale, 32.0f, Pens.Red, out graphMax);
-			curY += graphMax + 10.0f;
+			curY += 32.0f * noiseScale * 1.5f + 10.0f;
 			DrawGraph(g, 20, curY, noisyStream.ToArray(), streamScale, 32.0f, Pens.Yellow, out graphMax);
 			curY += graphMax + 10.0f;
 			for (int i = 0; i < outStates.Count; i++)
