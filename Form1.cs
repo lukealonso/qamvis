@@ -68,7 +68,7 @@ namespace QAMVis
 			byte[] inBytes = Encoding.ASCII.GetBytes(inString);
 			uint[] inStates = modulator.EncodeStates(inBytes);
 			List<float> stream = new List<float>();
-			int wordLength = 32;
+			int wordLength = 64;
 			foreach (uint state in inStates)
 			{
 				float[] fragment = modulator.Modulate(state, wordLength);
@@ -95,7 +95,7 @@ namespace QAMVis
 			string outString = Encoding.ASCII.GetString(outBytes);
 
 			float curY = 100.0f;
-			float streamScale = 0.5f * (float)numericUpDown4.Value;
+			float streamScale = (16.0f / (float)wordLength) * (float)numericUpDown4.Value;
 			float streamSize = wordLength * streamScale;
 			float statesPerByte = (float)inStates.Length / (float)inBytes.Length;
 			for (int i = 0; i < inString.Length; i++)
