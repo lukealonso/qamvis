@@ -54,11 +54,20 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="Noise.cs" />
+    <Compile Include="PaintControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="PaintControl.Designer.cs">
+      <DependentUpon>PaintControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QAM.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PaintControl.resx">
+      <DependentUpon>PaintControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

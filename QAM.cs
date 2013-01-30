@@ -70,6 +70,10 @@ namespace QAMVis
 							bitsRemaining = bitsPerState;
 							currentState = states[stateIndex];
 						}
+						else
+						{
+							break;
+						}
 					}
 				}
 				resultStream.Add((byte)currentByte);
@@ -93,8 +97,7 @@ namespace QAMVis
 					int needBits = bitsPerState - currentBits;
 					int useBits = Math.Min(bitsRemaining, needBits);
 					uint useMask = (1U << useBits) - 1U;
-					uint existingMask = (1U << (8 - currentBits)) - 1U;
-					currentState |= (currentByte & useMask & existingMask) << currentBits;
+					currentState |= (currentByte & useMask) << currentBits;
 					currentBits += useBits;
 					bitsRemaining -= useBits;
 					currentByte >>= useBits;
@@ -105,6 +108,10 @@ namespace QAMVis
 						{
 							bitsRemaining = 8;
 							currentByte = input[byteIndex];
+						}
+						else
+						{
+							break;
 						}
 					}
 				}

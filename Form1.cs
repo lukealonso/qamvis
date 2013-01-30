@@ -11,6 +11,8 @@ namespace QAMVis
 {
     public partial class Form1 : Form
     {
+		private Random m_Random = new Random();
+
         public Form1()
         {
             InitializeComponent();
@@ -26,10 +28,26 @@ namespace QAMVis
 
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+			timer1.Interval = 33;
+			timer1.Enabled = true;
+        }
+
+		private void timer1_Tick(object sender, EventArgs e)
+		{
+			paintControl1.Invalidate();
+		}
+
+		private void paintControl1_Paint(object sender, PaintEventArgs e)
+		{
 			Graphics g = e.Graphics;
 			g.Clear(Color.Black);
 
-			QAM modulator = new QAM(2, 2);
+			QAM modulator = new QAM((int)Math.Pow(2.0f, (float)numericUpDown1.Value), (int)Math.Pow(2.0f, (float)numericUpDown2.Value));
 			/*
 			for (var i = 0; i < modulator.NumStates; i++)
 			{
@@ -48,12 +66,12 @@ namespace QAMVis
 				stream.AddRange(fragment);
 			}
 
-			float[] noise = Noise.GenerateNoise(stream.Count, 0.5f);
+			float[] noise = Noise.GenerateNoise(stream.Count, (float)numericUpDown3.Value / 10.0f);
 			List<float> noisyStream = new List<float>();
-
+			int shifter = (int)((m_Random.NextDouble() * 2.0f - 1.0f) * 0.0f);
 			for (int i = 0; i < stream.Count; i++)
 			{
-				noisyStream.Add(noise[i] + stream[i]);
+				noisyStream.Add(noise[i] + stream[Math.Max(0, Math.Min(stream.Count - 1, i + shifter))]);
 			}
 
 			List<uint> outStates = new List<uint>();
@@ -100,17 +118,6 @@ namespace QAMVis
 				g.DrawString(outString[i].ToString(), System.Drawing.SystemFonts.DefaultFont, useBrush, new PointF(20.0f + state * streamScale, curY));
 			}
 			curY += 16.0f;
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-			timer1.Interval = 33;
-			timer1.Enabled = true;
-        }
-
-		private void timer1_Tick(object sender, EventArgs e)
-		{
-			this.Invalidate();
 		}
     }
 }
