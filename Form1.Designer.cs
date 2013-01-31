@@ -34,11 +34,13 @@
 			this.numericUpDown2 = new System.Windows.Forms.NumericUpDown();
 			this.numericUpDown3 = new System.Windows.Forms.NumericUpDown();
 			this.numericUpDown4 = new System.Windows.Forms.NumericUpDown();
+			this.numericUpDown5 = new System.Windows.Forms.NumericUpDown();
 			this.paintControl1 = new QAMVis.PaintControl();
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown2)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown4)).BeginInit();
+			((System.ComponentModel.ISupportInitialize)(this.numericUpDown5)).BeginInit();
 			this.SuspendLayout();
 			// 
 			// timer1
@@ -49,12 +51,7 @@
 			// 
 			this.numericUpDown1.Location = new System.Drawing.Point(0, 0);
 			this.numericUpDown1.Maximum = new decimal(new int[] {
-            4,
-            0,
-            0,
-            0});
-			this.numericUpDown1.Minimum = new decimal(new int[] {
-            1,
+            6,
             0,
             0,
             0});
@@ -71,12 +68,7 @@
 			// 
 			this.numericUpDown2.Location = new System.Drawing.Point(59, 0);
 			this.numericUpDown2.Maximum = new decimal(new int[] {
-            4,
-            0,
-            0,
-            0});
-			this.numericUpDown2.Minimum = new decimal(new int[] {
-            1,
+            6,
             0,
             0,
             0});
@@ -110,7 +102,7 @@
 			// 
 			this.numericUpDown4.Location = new System.Drawing.Point(118, 0);
 			this.numericUpDown4.Maximum = new decimal(new int[] {
-            8,
+            16,
             0,
             0,
             0});
@@ -128,6 +120,18 @@
             0,
             0});
 			// 
+			// numericUpDown5
+			// 
+			this.numericUpDown5.Location = new System.Drawing.Point(236, 0);
+			this.numericUpDown5.Maximum = new decimal(new int[] {
+            20,
+            0,
+            0,
+            0});
+			this.numericUpDown5.Name = "numericUpDown5";
+			this.numericUpDown5.Size = new System.Drawing.Size(53, 20);
+			this.numericUpDown5.TabIndex = 5;
+			// 
 			// paintControl1
 			// 
 			this.paintControl1.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -142,6 +146,7 @@
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(879, 753);
+			this.Controls.Add(this.numericUpDown5);
 			this.Controls.Add(this.numericUpDown4);
 			this.Controls.Add(this.numericUpDown3);
 			this.Controls.Add(this.numericUpDown2);
@@ -156,6 +161,7 @@
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown2)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown4)).EndInit();
+			((System.ComponentModel.ISupportInitialize)(this.numericUpDown5)).EndInit();
 			this.ResumeLayout(false);
 
         }
@@ -168,6 +174,7 @@
 		private System.Windows.Forms.NumericUpDown numericUpDown2;
 		private System.Windows.Forms.NumericUpDown numericUpDown3;
 		private System.Windows.Forms.NumericUpDown numericUpDown4;
+		private System.Windows.Forms.NumericUpDown numericUpDown5;
     }
 }
 

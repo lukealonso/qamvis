@@ -15,19 +15,21 @@ namespace QAMVis
 			m_NumPhases = phases;
 		}
 
-		public float[] Modulate(uint state, int wordLength)
+		public float[] Modulate(UInt64 symbol, int wordLength)
 		{
-			int subStateBits = (int)Math.Log(m_NumAmplitudes * m_NumPhases, 2);
+			int subSymbolBits = (int)Math.Log(m_NumAmplitudes * m_NumPhases, 2);
 			float baseAmplitude = 1.0f / (float)m_NumAmplitudes;
+			float phaseDist = 1.0f / (m_NumPhases);
+			float phaseOffset = phaseDist * 0.5f;
 			float[] result = new float[wordLength];
 			float nrm = 1.0f / (float)m_NumFrequencies;
 			for (int f = 0; f < m_NumFrequencies; f++)
 			{
-				uint subState = (state >> (subStateBits * f)) & (uint)((1 << subStateBits) - 1);
-				int amplitudeIndex = (int)subState / m_NumPhases;
-				float remainingAmplitude = 1.0f - baseAmplitude;
-				float amplitude = baseAmplitude + ((float)amplitudeIndex / (float)(m_NumAmplitudes - 1)) * remainingAmplitude;
-				float phase = (float)(subState % m_NumPhases) / (float)(m_NumPhases - 1);
+				UInt64 subSymbol = (symbol >> (subSymbolBits * f)) & (UInt64)((1 << subSymbolBits) - 1);
+				int amplitudeIndex = (int)(subSymbol / (UInt64)m_NumPhases);
+				int phaseIndex = (int)(subSymbol % (UInt64)m_NumPhases);
+				float amplitude = m_NumAmplitudes == 1 ? 1.0f : baseAmplitude + ((float)amplitudeIndex / (float)(m_NumAmplitudes - 1)) * (1.0f - baseAmplitude);
+				float phase = (phaseOffset + phaseDist * (float)phaseIndex) * 2.0f - 1.0f;
 				for (int i = 0; i < wordLength; i++)
 				{
 					float t = (float)i / (float)(wordLength - 1);
@@ -37,55 +39,61 @@ namespace QAMVis
 			return result;
 		}
 
-		public uint Demodulate(float[] data)
+		public UInt64 Demodulate(float[] data)
 		{
 			float nrm = (float)m_NumFrequencies;
-			int subStateBits = (int)Math.Log(m_NumAmplitudes * m_NumPhases, 2);
+			int subSymbolBits = (int)Math.Log(m_NumAmplitudes * m_NumPhases, 2);
 			float magStep = (float)data.Length / (float)(m_NumAmplitudes * 2);
 			List<FFT.Complex> coeffs = FFT.DFT(data, nrm).ToList();
 			coeffs = coeffs.OrderBy(x => -x.Magnitude).ToList();
 			coeffs = coeffs.GetRange(0, m_NumFrequencies);
 			coeffs = coeffs.OrderBy(x => x.freq).ToList();
-			uint finalState = 0; 
-			for( int f = 0; f < m_NumFrequencies; f++ )
+			UInt64 finalSymbol = 0;
+			float phaseDist = 1.0f / (m_NumPhases);
+			float phaseOffset = phaseDist * 0.5f;
+			float amplitudeDist = 1.0f / (m_NumAmplitudes);
+			float amplitudeOffset = amplitudeDist * 0.5f;
+			for (int f = 0; f < m_NumFrequencies; f++)
 			{
+				float basePhase = (coeffs[f].Angle / (float)Math.PI) * 0.5f + 0.5f;
+				float phase = (float)Math.Round((basePhase - phaseOffset) / phaseDist);
+				float baseAmplitude = coeffs[f].Magnitude / ((float)data.Length * 0.5f);
 				float phaseStep = (float)Math.PI / (float)(m_NumPhases - 1);
 				float amplitude = (float)Math.Round((coeffs[f].Magnitude - magStep) / magStep);
-				float phase = (float)Math.Round(Math.Abs(coeffs[f].Angle) / phaseStep);
-				uint state = (uint)Math.Min((float)NumStates, Math.Max(0.0f, Math.Round(amplitude * (float)m_NumPhases + phase)));
-				finalState |= state << (subStateBits * f);
+				UInt64 symbol = (UInt64)Math.Min((float)NumSymbols, Math.Max(0.0f, Math.Round(amplitude * (float)m_NumPhases + phase)));
+				finalSymbol |= symbol << (subSymbolBits * f);
 			}
 
-			return finalState;
+			return finalSymbol;
 		}
 
-		public byte[] DecodeStates(uint[] states)
+		public byte[] DecodeSymbols(UInt64[] symbols)
 		{
-			int bitsPerState = (int)Math.Log(NumStates, 2);
-			int stateIndex = 0;
-			int bitsRemaining = bitsPerState;
-			uint currentState = states[0];
+			int bitsPerSymbol = (int)Math.Log(NumSymbols, 2);
+			int symbolIndex = 0;
+			int bitsRemaining = bitsPerSymbol;
+			UInt64 currentSymbol = symbols[0];
 			List<byte> resultStream = new List<byte>();
-			while (stateIndex < states.Length)
+			while (symbolIndex < symbols.Length)
 			{
-				uint currentByte = 0;
+				UInt64 currentByte = 0;
 				int currentBits = 0;
 				while (currentBits < 8)
 				{
 					int needBits = 8 - currentBits;
 					int useBits = Math.Min(bitsRemaining, needBits);
-					uint useMask = (1U << useBits) - 1U;
-					currentByte |= (currentState & useMask) << currentBits;
+					UInt64 useMask = (1U << useBits) - 1U;
+					currentByte |= (currentSymbol & useMask) << currentBits;
 					currentBits += useBits;
 					bitsRemaining -= useBits;
-					currentState >>= useBits;
+					currentSymbol >>= useBits;
 					if (bitsRemaining == 0)
 					{
-						stateIndex++;
-						if (stateIndex < states.Length)
+						symbolIndex++;
+						if (symbolIndex < symbols.Length)
 						{
-							bitsRemaining = bitsPerState;
-							currentState = states[stateIndex];
+							bitsRemaining = bitsPerSymbol;
+							currentSymbol = symbols[symbolIndex];
 						}
 						else
 						{
@@ -98,23 +106,23 @@ namespace QAMVis
 			return resultStream.ToArray();
 		}
 
-		public uint[] EncodeStates(byte[] input)
+		public UInt64[] EncodeSymbols(byte[] input)
 		{
-			int bitsPerState = (int)Math.Log(NumStates, 2);
+			int bitsPerSymbol = (int)Math.Log(NumSymbols, 2);
 			int byteIndex = 0;
 			int bitsRemaining = 8;
-			uint currentByte = input[0];
-			List<uint> resultStream = new List<uint>();
+			UInt64 currentByte = input[0];
+			List<UInt64> resultStream = new List<UInt64>();
 			while (byteIndex < input.Length)
 			{
-				uint currentState = 0;
+				UInt64 currentSymbol = 0;
 				int currentBits = 0;
-				while (currentBits < bitsPerState)
+				while (currentBits < bitsPerSymbol)
 				{
-					int needBits = bitsPerState - currentBits;
+					int needBits = bitsPerSymbol - currentBits;
 					int useBits = Math.Min(bitsRemaining, needBits);
-					uint useMask = (1U << useBits) - 1U;
-					currentState |= (currentByte & useMask) << currentBits;
+					UInt64 useMask = (1U << useBits) - 1U;
+					currentSymbol |= (currentByte & useMask) << currentBits;
 					currentBits += useBits;
 					bitsRemaining -= useBits;
 					currentByte >>= useBits;
@@ -132,19 +140,34 @@ namespace QAMVis
 						}
 					}
 				}
-				resultStream.Add(currentState);
+				resultStream.Add(currentSymbol);
 			}
 			return resultStream.ToArray();
 		}
 
-		public int NumStates
+		public int NumSubSymbols
 		{
 			get
 			{
-				return (int)Math.Pow(m_NumAmplitudes * m_NumPhases, m_NumFrequencies);
+				return m_NumAmplitudes * m_NumPhases;
 			}
 		}
+
+		public UInt64 NumSymbols
+		{
+			get
+			{
+				return (UInt64)Math.Pow(m_NumAmplitudes * m_NumPhases, m_NumFrequencies);
+			}
+		}
+
 		private int m_NumFrequencies;
+		public int NumFrequencies
+		{
+			get { return m_NumFrequencies; }
+			set { m_NumFrequencies = value; }
+		}
+
 		private int m_NumAmplitudes;
 		private int m_NumPhases;
 	}
