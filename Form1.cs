@@ -56,8 +56,8 @@ namespace QAMVis
 		{
 			Graphics g = e.Graphics;
 			g.Clear(Color.Black);
-
-			QAM modulator = new QAM((int)Math.Pow(2.0f, (float)numericUpDown1.Value), (int)Math.Pow(2.0f, (float)numericUpDown2.Value), (int)numericUpDown4.Value);
+			int frameLength = 64;
+			QAM modulator = new QAM((int)Math.Pow(2.0f, (float)numericUpDown1.Value), (int)Math.Pow(2.0f, (float)numericUpDown2.Value), (int)numericUpDown4.Value, frameLength);
 			/*
 			for (var i = 0; i < modulator.NumSymbols; i++)
 			{
@@ -69,10 +69,9 @@ namespace QAMVis
 			byte[] inBytes = Encoding.ASCII.GetBytes(inString);
 			UInt64[] inSymbols = modulator.EncodeSymbols(inBytes);
 			List<float> stream = new List<float>();
-			int wordLength = 64;
 			foreach (UInt64 symbol in inSymbols)
 			{
-				float[] fragment = modulator.Modulate(symbol, wordLength);
+				float[] fragment = modulator.Modulate(symbol);
 				stream.AddRange(fragment);
 			}
 			float noiseScale = (float)numericUpDown3.Value / 20.0f;
@@ -85,9 +84,9 @@ namespace QAMVis
 			}
 
 			List<UInt64> outSymbols = new List<UInt64>();
-			for (int i = 0; i < noisyStream.Count; i += wordLength)
+			for (int i = 0; i < noisyStream.Count; i += frameLength)
 			{
-				float[] fragment = noisyStream.GetRange(i, wordLength).ToArray();
+				float[] fragment = noisyStream.GetRange(i, frameLength).ToArray();
 				UInt64 symbolOut = modulator.Demodulate(fragment);
 				outSymbols.Add(symbolOut);
 			}
@@ -97,7 +96,7 @@ namespace QAMVis
 
 			float curY = 100.0f;
 			float streamScale = 840.0f / stream.Count;
-			float streamSize = wordLength * streamScale;
+			float streamSize = frameLength * streamScale;
 			float symbolsPerByte = (float)inSymbols.Length / (float)inBytes.Length;
 			for (int i = 0; i < inString.Length; i++)
 			{
@@ -111,11 +110,11 @@ namespace QAMVis
 			}
 			int graphMax = 0;
 			curY += 26.0f;
-			DrawGraph(g, 20, curY, stream.ToArray(), streamScale, 32.0f, Pens.Aqua, Pens.SteelBlue, wordLength, out graphMax);
+			DrawGraph(g, 20, curY, stream.ToArray(), streamScale, 32.0f, Pens.Aqua, Pens.SteelBlue, frameLength, out graphMax);
 			curY += graphMax + 10.0f;
 			DrawGraph(g, 20, curY, noise, streamScale, 32.0f, Pens.Red, Pens.Red, 1, out graphMax);
 			curY += 32.0f * noiseScale * 1.5f + 10.0f;
-			DrawGraph(g, 20, curY, noisyStream.ToArray(), streamScale, 32.0f, Pens.Yellow, Pens.LightYellow, wordLength, out graphMax);
+			DrawGraph(g, 20, curY, noisyStream.ToArray(), streamScale, 32.0f, Pens.Yellow, Pens.LightYellow, frameLength, out graphMax);
 			curY += graphMax + 10.0f;
 			for (int i = 0; i < outSymbols.Count; i++)
 			{

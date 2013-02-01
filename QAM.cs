@@ -8,20 +8,22 @@ namespace QAMVis
 {
 	public class QAM
 	{
-		public QAM(int amplitudes, int phases, int frequencies)
+		public QAM(int amplitudes, int phases, int frequencies, int frameLength)
 		{
 			m_NumFrequencies = frequencies;
 			m_NumAmplitudes = amplitudes;
 			m_NumPhases = phases;
+			m_FrameLength = frameLength;
+			m_FFT = new FFT(frameLength);
 		}
 
-		public float[] Modulate(UInt64 symbol, int wordLength)
+		public float[] Modulate(UInt64 symbol)
 		{
 			int subSymbolBits = (int)Math.Log(m_NumAmplitudes * m_NumPhases, 2);
 			float baseAmplitude = 1.0f / (float)m_NumAmplitudes;
 			float phaseDist = 1.0f / (m_NumPhases);
 			float phaseOffset = phaseDist * 0.5f;
-			float[] result = new float[wordLength];
+			float[] result = new float[m_FrameLength];
 			float nrm = 1.0f / (float)m_NumFrequencies;
 			for (int f = 0; f < m_NumFrequencies; f++)
 			{
@@ -30,9 +32,9 @@ namespace QAMVis
 				int phaseIndex = (int)(subSymbol % (UInt64)m_NumPhases);
 				float amplitude = m_NumAmplitudes == 1 ? 1.0f : baseAmplitude + ((float)amplitudeIndex / (float)(m_NumAmplitudes - 1)) * (1.0f - baseAmplitude);
 				float phase = (phaseOffset + phaseDist * (float)phaseIndex) * 2.0f - 1.0f;
-				for (int i = 0; i < wordLength; i++)
+				for (int i = 0; i < m_FrameLength; i++)
 				{
-					float t = (float)i / (float)(wordLength - 1);
+					float t = (float)i / (float)(m_FrameLength);
 					result[i] += (float)Math.Sin(t * Math.PI * 2.0f * ((float)f + 1.0f) + phase * Math.PI) * amplitude * nrm;
 				}
 			}
@@ -44,7 +46,7 @@ namespace QAMVis
 			float nrm = (float)m_NumFrequencies;
 			int subSymbolBits = (int)Math.Log(m_NumAmplitudes * m_NumPhases, 2);
 			float magStep = (float)data.Length / (float)(m_NumAmplitudes * 2);
-			List<FFT.Complex> coeffs = FFT.DFT(data, nrm).ToList();
+			List<FFT.Complex> coeffs = m_FFT.DFT(data, nrm).ToList();
 			coeffs = coeffs.OrderBy(x => -x.Magnitude).ToList();
 			coeffs = coeffs.GetRange(0, m_NumFrequencies);
 			coeffs = coeffs.OrderBy(x => x.freq).ToList();
@@ -60,7 +62,7 @@ namespace QAMVis
 				float baseAmplitude = coeffs[f].Magnitude / ((float)data.Length * 0.5f);
 				float phaseStep = (float)Math.PI / (float)(m_NumPhases - 1);
 				float amplitude = (float)Math.Round((coeffs[f].Magnitude - magStep) / magStep);
-				UInt64 symbol = (UInt64)Math.Min((float)NumSymbols, Math.Max(0.0f, Math.Round(amplitude * (float)m_NumPhases + phase)));
+				UInt64 symbol = (UInt64)Math.Min((float)NumSymbols, Math.Max(0.0, Math.Round(amplitude * (float)m_NumPhases + phase)));
 				finalSymbol |= symbol << (subSymbolBits * f);
 			}
 
@@ -168,6 +170,8 @@ namespace QAMVis
 			set { m_NumFrequencies = value; }
 		}
 
+		private FFT m_FFT;
+		private int m_FrameLength;
 		private int m_NumAmplitudes;
 		private int m_NumPhases;
 	}
